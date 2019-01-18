@@ -52,6 +52,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
   void dispose() {
     super.dispose();
     _animationController.dispose();
+    _pageController.dispose();
     //player.stop();
     //playerState = PlayerState.stopped;
   }

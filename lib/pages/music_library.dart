@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audiometadata/audiometadata.dart';
 import 'package:flutter/material.dart';
@@ -15,15 +16,19 @@ class MusicLibrary extends StatefulWidget {
   _MusicLibraryState createState() => _MusicLibraryState();
 }
 
-class _MusicLibraryState extends State<MusicLibrary> {
+class _MusicLibraryState extends State<MusicLibrary>
+    with TickerProviderStateMixin {
 
   Track track;
   Playlist playlist = new Playlist();
-  final List<FileSystemEntity> files = List<FileSystemEntity>();
+  static final List<FileSystemEntity> files = List<FileSystemEntity>();
   Future<List> _metadata;
-  Directory parent;
+  static Directory parent;
+  TabController _tabController;
   Audiometadata audioMetadata = new Audiometadata();
-  Image noArt = new Image.asset("assets/images/noart.jpg");
+  final Image noArt = new Image.asset("assets/images/noart.jpg");
+  ImageProvider musicBG = new Image.asset("assets/images/musicbg.jpg").image;
+  int rand;
 
   Future<String> get localPath async {
     final dir = await getExternalStorageDirectory();
@@ -34,6 +39,17 @@ class _MusicLibraryState extends State<MusicLibrary> {
   initState() {
     super.initState();
     initPermissions();
+    initTabController();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  initTabController() {
+    _tabController = new TabController(length: 3, vsync: this);
   }
 
   Future initPermissions() async {
@@ -45,7 +61,15 @@ class _MusicLibraryState extends State<MusicLibrary> {
           localPath.then((String value) {
             Directory dir = Directory(value);
             parent = dir;
-            addToLibrary();
+            addToLibrary().whenComplete(() {
+              rand = Random().nextInt(playlist.length());
+              print("num: $rand");
+              setState(() {
+                musicBG = playlist
+                    .get(rand)
+                    .albumArt;
+              });
+            });
           });
         }
         else
@@ -55,6 +79,7 @@ class _MusicLibraryState extends State<MusicLibrary> {
     // });
   }
 
+
   Future<List> initMetadata(String trackPath) async {
     List metadata;
     //("path: ${track.trackPath}");
@@ -63,7 +88,6 @@ class _MusicLibraryState extends State<MusicLibrary> {
     } on Exception {
       metadata[0] = 'Failed to get metadata';
     }
-    setState(() {});
     return metadata;
   }
 
@@ -74,7 +98,7 @@ class _MusicLibraryState extends State<MusicLibrary> {
           (file.path.endsWith(".mp3") || file.path.endsWith(".m4a"))) {
         final track = new Track(trackPath: file.path);
         _metadata = initMetadata(track.trackPath);
-        _metadata.then((metadata) {
+        await _metadata.then((metadata) {
           track.trackTitle = metadata?.elementAt(0) ??
               p.basenameWithoutExtension(track.trackPath);
           print(track.trackTitle);
@@ -90,13 +114,13 @@ class _MusicLibraryState extends State<MusicLibrary> {
             track.albumArt = noArt.image;
           else
             track.albumArt = (Image
-                .memory(metadata.elementAt(6))
+                .memory(
+                metadata.elementAt(6))
                 .image);
         });
         playlist.add(track);
       }
     }
-    setState(() {});
   }
 
   navigateToPlay(int index) {
@@ -109,42 +133,73 @@ class _MusicLibraryState extends State<MusicLibrary> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: new ListView.builder(
-        itemBuilder: (BuildContext context, int index) {
-          return MaterialButton(
-            onPressed: () =>
-                navigateToPlay(index),
-            child: Card(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              margin: const EdgeInsets.all(3),
-              child: new ListTile(
-                title: new Text(
-                  playlist
-                      .get(index)
-                      .trackTitle,
+    MediaQueryData media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media,
+      child: Scaffold(
+        backgroundColor: Color(0xFFE1E2E1),
+        body: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 160,
+              centerTitle: true,
+              flexibleSpace: FlexibleSpaceBar(
+                  background: Image(image: musicBG, fit: BoxFit.cover,)),
+              bottom: TabBar(
+                controller: _tabController,
+                tabs: <Widget>[
+                  IconButton(icon: Icon(Icons.music_note), onPressed: null),
+                  IconButton(icon: Icon(Icons.person), onPressed: null),
+                  IconButton(icon: Icon(Icons.album), onPressed: null)
+                ],),
+            ),
+            SliverFillRemaining(
+              child: Card(
+                shape: BeveledRectangleBorder(),
+                margin: EdgeInsets.symmetric(horizontal: 12),
+                elevation: 8,
+                child: ListView.builder(
+                  itemBuilder: (BuildContext context, int index) {
+                    return MaterialButton(
+                        onPressed: () =>
+                            navigateToPlay(index),
+                        child: new ListTile(
+                          title: new Text(
+                            playlist
+                                .get(index)
+                                .trackTitle,
+                          ),
+                          leading: SizedBox(
+                              child: Container(decoration: BoxDecoration(
+                                  image: DecorationImage(image: playlist
+                                      .get(index)
+                                      .albumArt)),
+                                width: 50,
+                                height: 50,
+                              )),
+                          subtitle: new Text(playlist
+                              .get(index)
+                              .trackArtist),
+                        )
+                    );
+                  },
+                  itemCount: playlist.length(),
                 ),
-                leading: CircleAvatar(backgroundImage: playlist
-                    .get(index)
-                    .albumArt,),
-                subtitle: new Text(playlist.get(index).trackArtist),
               ),
             ),
-          );
-        },
-        itemCount: playlist.length(),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-              icon: Icon(Icons.library_music), title: Text("Library")),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.music_note), title: Text("Now Playing")),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.favorite), title: Text("Favorites")),
-        ],
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+                icon: Icon(Icons.library_music), title: Text("Library")),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.music_note), title: Text("Now Playing")),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.favorite), title: Text("Favorites")),
+          ],
+        ),
       ),
     );
   }

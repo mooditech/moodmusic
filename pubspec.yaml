@@ -51,6 +51,7 @@ flutter:
   - assets/images/mbdtf.jpg
   - assets/images/noart.jpg
   - assets/images/ksgsmall.jpg
+  - assets/images/musicbg.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.io/assets-and-images/#resolution-aware.
