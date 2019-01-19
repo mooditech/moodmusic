@@ -36,14 +36,12 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   get isPlaying => playerState == PlayerState.playing;
   static int playlistIndex;
-  static int initialIndex;
 
   @override
   void initState() {
     super.initState();
     initAnimate();
     initPlayer();
-    initialIndex = widget.trackIndex;
     playlistIndex = widget.trackIndex;
     initPageController();
   }
@@ -53,25 +51,21 @@ class PlaybackScreenState extends State<PlaybackScreen>
     super.dispose();
     _animationController.dispose();
     _pageController.dispose();
-    //player.stop();
-    //playerState = PlayerState.stopped;
   }
 
   Future initPlayer() async {
     if (player == null) {
       player = new AudioPlayer();
-      //audioPlayer.stop();
     }
+
     player.durationHandler = (Duration d) => setState(() => duration = d);
     player.positionHandler = (Duration p) => setState(() => position = p);
+
     player.completionHandler = () {
       onComplete();
       setState(() => position = duration);
     };
-    player.completionHandler = () {
-      onComplete();
-      setState(() => position = duration);
-    };
+
     player.errorHandler = (msg) {
       print("player error: :$msg");
       setState(() {
@@ -92,7 +86,7 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   initPageController() {
     _pageController = new PageController(
-        initialPage: initialIndex,
+        initialPage: widget.trackIndex,
         viewportFraction: 1);
   }
 
@@ -153,12 +147,10 @@ class PlaybackScreenState extends State<PlaybackScreen>
 
   next() {
     playlistIndex++;
-    //print(playlistIndex);
     play(playlistIndex);
   }
 
   prev() {
-    //print(playlistIndex);
     playlistIndex--;
     play(playlistIndex);
   }
@@ -201,12 +193,10 @@ class PlaybackScreenState extends State<PlaybackScreen>
                                   onPageChanged: (int idx) {
                                     print("index: $idx");
                                     print("page: ${_pageController.page}");
-                                    if (idx < _pageController.page) {
+                                    if (idx < _pageController.page)
                                       prev();
-                                    }
-                                    else {
+                                    else
                                       next();
-                                    }
                                   },
                                   itemCount: widget.playlist.length(),
                                   itemBuilder: (context, index) {
@@ -333,19 +323,19 @@ class PlaybackScreenState extends State<PlaybackScreen>
                                     child: GestureDetector(
                                       onHorizontalDragUpdate: (
                                           DragUpdateDetails update) {
-                                        if (update.delta.dx < -5){
+                                        if (update.delta.dx < -5) {
                                           _pageController.nextPage(
                                               duration: Duration(
                                                   milliseconds: 200),
                                               curve: Curves.linear);
-                                         // playlistIndex++;
+                                          // playlistIndex++;
                                         }
                                         else if (update.delta.dx > 5) {
                                           _pageController.previousPage(
                                               duration: Duration(
                                                   milliseconds: 200),
                                               curve: Curves.linear);
-                                         // playlistIndex--;
+                                          // playlistIndex--;
                                         }
                                       },
                                       // onHorizontalDragEnd: ,

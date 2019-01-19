@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:audiometadata/audiometadata.dart';
 import 'package:flutter/material.dart';
 import 'package:moodi_music/utils/songs.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:simple_permissions/simple_permissions.dart';
@@ -25,9 +26,10 @@ class _MusicLibraryState extends State<MusicLibrary>
   Future<List> _metadata;
   static Directory parent;
   TabController _tabController;
-  Audiometadata audioMetadata = new Audiometadata();
+  final Audiometadata audioMetadata = new Audiometadata();
   final Image noArt = new Image.asset("assets/images/noart.jpg");
   ImageProvider musicBG = new Image.asset("assets/images/musicbg.jpg").image;
+  PaletteGenerator paletteGenerator;
   int rand;
 
   Future<String> get localPath async {
@@ -64,6 +66,7 @@ class _MusicLibraryState extends State<MusicLibrary>
             addToLibrary().whenComplete(() {
               rand = Random().nextInt(playlist.length());
               print("num: $rand");
+
               setState(() {
                 musicBG = playlist
                     .get(rand)
@@ -123,6 +126,7 @@ class _MusicLibraryState extends State<MusicLibrary>
     }
   }
 
+
   navigateToPlay(int index) {
     Navigator.push(context,
         MaterialPageRoute(
@@ -142,7 +146,8 @@ class _MusicLibraryState extends State<MusicLibrary>
           slivers: <Widget>[
             SliverAppBar(
               pinned: true,
-              expandedHeight: 160,
+              backgroundColor: Color(0xFFa6bfcc),
+              expandedHeight: 300,
               centerTitle: true,
               flexibleSpace: FlexibleSpaceBar(
                   background: Image(image: musicBG, fit: BoxFit.cover,)),
@@ -154,38 +159,39 @@ class _MusicLibraryState extends State<MusicLibrary>
                   IconButton(icon: Icon(Icons.album), onPressed: null)
                 ],),
             ),
-            SliverFillRemaining(
-              child: Card(
-                shape: BeveledRectangleBorder(),
-                margin: EdgeInsets.symmetric(horizontal: 12),
-                elevation: 8,
-                child: ListView.builder(
-                  itemBuilder: (BuildContext context, int index) {
-                    return MaterialButton(
-                        onPressed: () =>
-                            navigateToPlay(index),
-                        child: new ListTile(
-                          title: new Text(
-                            playlist
-                                .get(index)
-                                .trackTitle,
-                          ),
-                          leading: SizedBox(
-                              child: Container(decoration: BoxDecoration(
-                                  image: DecorationImage(image: playlist
-                                      .get(index)
-                                      .albumArt)),
-                                width: 50,
-                                height: 50,
-                              )),
-                          subtitle: new Text(playlist
+            SliverFixedExtentList(
+              itemExtent: 95,
+              delegate: SliverChildBuilderDelegate((BuildContext context,
+                  int index) {
+                return Card(
+                  shape: BeveledRectangleBorder(),
+                  margin: EdgeInsets.symmetric(horizontal: 12),
+                  elevation: 8,
+                  child: MaterialButton(
+                      onPressed: () =>
+                          navigateToPlay(index),
+                      child: new ListTile(
+                        title: new Text(
+                          playlist
                               .get(index)
-                              .trackArtist),
-                        )
-                    );
-                  },
-                  itemCount: playlist.length(),
-                ),
+                              .trackTitle,
+                        ),
+                        leading: SizedBox(
+                            child: Container(decoration: BoxDecoration(
+                                image: DecorationImage(image: playlist
+                                    .get(index)
+                                    .albumArt)),
+                              width: 50,
+                              height: 50,
+                            )),
+                        subtitle: new Text(playlist
+                            .get(index)
+                            .trackArtist),
+                      )
+                  ),
+                );
+              },
+                childCount: playlist.length(),
               ),
             ),
           ],
